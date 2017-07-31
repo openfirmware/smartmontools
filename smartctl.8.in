@@ -1224,6 +1224,9 @@ This is the default if the \*(Aq'\-x\*(Aq option is specified.
 .Sp
 .I hex
 \- Same as \*(Aq\-f hex,id \-f hex,val\*(Aq.
+.Sp
+.I json
+\- Output in JavaScript Object Notation format.
 .TP
 .B \-l TYPE, \-\-log=TYPE
 Prints various device logs.
