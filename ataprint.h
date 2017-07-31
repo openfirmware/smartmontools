@@ -81,7 +81,7 @@ struct ata_print_options
   unsigned sct_temp_int;
   bool sct_temp_int_pers;
 
-  enum { FMT_BRIEF = 0x01, FMT_HEX_ID = 0x02, FMT_HEX_VAL = 0x04 };
+  enum { FMT_BRIEF = 0x01, FMT_HEX_ID = 0x02, FMT_HEX_VAL = 0x04, FMT_JSON = 0x08 };
   unsigned char output_format; // FMT_* flags
 
   firmwarebug_defs firmwarebugs; // -F options
