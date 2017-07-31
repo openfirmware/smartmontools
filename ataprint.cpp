@@ -627,9 +627,8 @@ static void print_drive_info(const ata_identify_device * drive,
     int naa = ata_get_wwn(drive, oui, unique_id);
     if (naa >= 0) {
       pout("LU WWN Device Id: %x %06x %09" PRIx64 "\n", naa, oui, unique_id);
-      char buf[32];
-      sprintf(buf, "%x %06x %09" PRIx64 "", naa, oui, unique_id);
-      driveinfo["WWNDeviceId"] = buf;
+      std::string devid = strprintf("%x %06x %09" PRIx64 "", naa, oui, unique_id);
+      driveinfo["WWNDeviceId"] = devid;
     }
   }
 
@@ -751,12 +750,11 @@ static void print_drive_info(const ata_identify_device * drive,
              (maxspeed ? ", " : ""), (maxspeed ? maxspeed : ""),
              (curspeed ? " (current: " : ""), (curspeed ? curspeed : ""),
              (curspeed ? ")" : ""));
-        char buf[32] = "";
-        sprintf(buf, "%s%s%s%s%s%s", sataver,
+        std::string sataversion = strprintf("%s%s%s%s%s%s", sataver,
              (maxspeed ? ", " : ""), (maxspeed ? maxspeed : ""),
              (curspeed ? " (current: " : ""), (curspeed ? curspeed : ""),
              (curspeed ? ")" : ""));
-        driveinfo["SATAVersion"] = buf;
+        driveinfo["SATAVersion"] = sataversion;
       }
       break;
     case 0xe: // PCIe (ACS-4)
