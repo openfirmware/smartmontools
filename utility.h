@@ -35,6 +35,8 @@
 #include <string.h>
 #include <string>
 
+#include "json.hpp"
+
 #ifndef __GNUC__
 #define __attribute_format_printf(x, y)  /**/
 #elif defined(__MINGW32__) && __USE_MINGW_ANSI_STDIO
@@ -86,8 +88,15 @@ void dateandtimezoneepoch(char *buffer, time_t tval);
 // although the prototype is given here in utility.h, the function
 // itself is defined differently in smartctl and smartd.  So the
 // function definition(s) are in smartd.c and in smartctl.c.
-void pout(const char *fmt, ...)  
+void pout(const char *fmt, ...)
     __attribute_format_printf(1, 2);
+
+// Merge jsoninput into a global json object that will be printed when
+// finished.
+void jsonout(nlohmann::json jsoninput);
+
+// Print global json output object to stdout.
+void pjson();
 
 // replacement for perror() with redirected output.
 void syserror(const char *message);

@@ -45,6 +45,7 @@
 #include "atacmds.h"
 #include "dev_interface.h"
 #include "ataprint.h"
+#include "json.hpp"
 #include "knowndrives.h"
 #include "scsicmds.h"
 #include "scsiprint.h"
@@ -58,10 +59,17 @@ const char * smartctl_cpp_cvsid = "$Id$"
 // Globals to control printing
 bool printing_is_switchable = false;
 bool printing_is_off = false;
+bool printing_is_json = false;
+
+nlohmann::json jsonoutput = nlohmann::json::object();
 
 static void printslogan()
 {
   pout("%s\n", format_version_info("smartctl").c_str());
+  jsonout({
+    { "packageVersion", PACKAGE_VERSION },
+    { "buildInfo", "Copyright (C) 2002-17, Bruce Allen, Christian Franke, www.smartmontools.org" }
+  });
 }
 
 static void UsageSummary()
@@ -135,7 +143,7 @@ static void Usage()
 "  -A, --attributes\n"
 "        Show device SMART vendor-specific Attributes and values\n\n"
 "  -f FORMAT, --format=FORMAT                                          (ATA)\n"
-"        Set output format for attributes: old, brief, hex[,id|val]\n\n"
+"        Set output format for attributes: old, brief, hex[,id|val], json\n\n"
 "  -l TYPE, --log=TYPE\n"
 "        Show device log. TYPE: error, selftest, selective, directory[,g|s],\n"
 "                               xerror[,N][,error], xselftest[,N][,selftest],\n"
@@ -222,7 +230,7 @@ static std::string getvalidarglist(int opt)
   case 'n':
     return "never, sleep[,STATUS], standby[,STATUS], idle[,STATUS]";
   case 'f':
-    return "old, brief, hex[,id|val]";
+    return "old, brief, hex[,id|val], json";
   case 'g':
     return "aam, apm, dsn, lookahead, security, wcache, rcache, wcreorder, wcache-sct";
   case opt_set:
@@ -268,7 +276,7 @@ static checksum_err_mode_t checksum_err_mode = CHECKSUM_ERR_WARN;
 static void scan_devices(const smart_devtype_list & types, bool with_open, char ** argv);
 
 
-/*      Takes command options and sets features to be run */    
+/*      Takes command options and sets features to be run */
 static const char * parse_options(int argc, char** argv,
   ata_print_options & ataopts, scsi_print_options & scsiopts,
   nvme_print_options & nvmeopts, bool & print_type_only)
@@ -690,7 +698,7 @@ static const char * parse_options(int argc, char** argv,
       }
       if (!parse_attribute_def(optarg, ataopts.attribute_defs, PRIOR_USER))
         badarg = true;
-      break;    
+      break;
     case 'P':
       if (!strcmp(optarg, "use")) {
         ataopts.ignore_presets = false;
@@ -832,6 +840,11 @@ static const char * parse_options(int argc, char** argv,
         ataopts.output_format |= ata_print_options::FMT_BRIEF;
         output_format_set = true;
       }
+      else if (!strcmp(optarg, "json")) {
+        ataopts.output_format |= ata_print_options::FMT_JSON;
+        printing_is_json = true;
+        output_format_set = true;
+      }
       else if (!strcmp(optarg, "hex"))
         ataopts.output_format |= ata_print_options::FMT_HEX_ID
                               |  ata_print_options::FMT_HEX_VAL;
@@ -857,7 +870,7 @@ static const char * parse_options(int argc, char** argv,
       printing_is_off = false;
       printslogan();
       Usage();
-      EXIT(0);  
+      EXIT(0);
       break;
 
     case 'g':
@@ -1068,9 +1081,9 @@ static const char * parse_options(int argc, char** argv,
         EXIT(FAILCMD);
       }
       Usage();
-      EXIT(0);  
+      EXIT(0);
     } // closes switch statement to process command-line options
-    
+
     // Check to see if option had an unrecognized or incorrect argument.
     if (badarg) {
       printslogan();
@@ -1160,14 +1173,14 @@ static const char * parse_options(int argc, char** argv,
 
   // From here on, normal operations...
   printslogan();
-  
+
   // Warn if the user has provided no device name
   if (argc-optind<1){
     pout("ERROR: smartctl requires a device name as the final command-line argument.\n\n");
     UsageSummary();
     EXIT(FAILCMD);
   }
-  
+
   // Warn if the user has provided more than one device name
   if (argc-optind>1){
     int i;
@@ -1195,10 +1208,10 @@ static const char * parse_options(int argc, char** argv,
 // appropriate.]
 void pout(const char *fmt, ...){
   va_list ap;
-  
-  // initialize variable argument list 
+
+  // initialize variable argument list
   va_start(ap,fmt);
-  if (printing_is_off) {
+  if (printing_is_off || printing_is_json) {
     va_end(ap);
     return;
   }
@@ -1208,6 +1221,31 @@ void pout(const char *fmt, ...){
   va_end(ap);
   fflush(stdout);
   return;
+}
+
+nlohmann::json mergeJson(nlohmann::json original, nlohmann::json to_merge) {
+  nlohmann::json output = original;
+  for (nlohmann::json::iterator it = to_merge.begin(); it != to_merge.end(); ++it) {
+    // If key isn't defined in output
+    if (output.find(it.key()) == output.end()) {
+      output.emplace(it.key(), it.value());
+    } else {
+      // Recursively merge embedded object
+      output[it.key()] = mergeJson(output.at(it.key()), it.value());
+    }
+  }
+  return output;
+}
+
+// Buffer input JSON data to a global JSON structure.
+void jsonout(nlohmann::json jsoninput) {
+  jsonoutput = mergeJson(jsonoutput, jsoninput);
+}
+
+// Dump JSON output to stdout.
+void pjson() {
+  if (printing_is_json)
+    std::cout << jsonoutput.dump(4) << std::endl;
 }
 
 // Globals to set failuretest() policy
@@ -1272,6 +1310,7 @@ static const char * get_protocol_info(const smart_device * dev)
 void scan_devices(const smart_devtype_list & types, bool with_open, char ** argv)
 {
   bool dont_print = !(ata_debugmode || scsi_debugmode || nvme_debugmode);
+  nlohmann::json devicelist;
 
   const char * pattern = 0;
   int ai = 0;
@@ -1305,6 +1344,12 @@ void scan_devices(const smart_devtype_list & types, bool with_open, char ** argv
     }
 
     pout("%s -d %s", dev->get_dev_name(), dev->get_dev_type());
+    devicelist.push_back({
+      { "name", dev->get_dev_name() },
+      { "informalName", dev->get_info_name() },
+      { "protocol", get_protocol_info(dev.get()) },
+      { "type", dev->get_dev_type() }
+    });
     if (!argv[ai])
       pout(" # %s, %s device\n", dev->get_info_name(), get_protocol_info(dev.get()));
     else {
@@ -1316,6 +1361,8 @@ void scan_devices(const smart_devtype_list & types, bool with_open, char ** argv
     if (dev->is_open())
       dev->close();
   }
+
+  jsonout({{ "devices", devicelist }});
 }
 
 // Main program without exception handling
@@ -1445,8 +1492,11 @@ int main(int argc, char **argv)
     status = FAILCMD;
   }
 
-  if (badcode)
+  if (badcode && !printing_is_json)
      printf("Please inform " PACKAGE_BUGREPORT ", including output of smartctl -V.\n");
+
+  if (!badcode)
+    pjson();
 
   return status;
 }
