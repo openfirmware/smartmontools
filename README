@@ -5,9 +5,275 @@ OSX, FreeBSD, Linux, NetBSD, OpenBSD, Solaris, and Windows.
 
 $Id$
 
+== ABOUT THIS FORK ==
+
+This is a fork by James Badger (@openfirmware) to modify `smartctl` to generate
+JSON output that can be parsed by other tools.
+
+It is not a well written patch. I consider it a test of feasibility and not a
+candidate for merging into the main smartmontools project. If you want to see
+JSON output from smartmontools for real, please see the trac ticket:
+https://www.smartmontools.org/ticket/766
+
+To do it right, it would help to separate the output formatting from the SMART
+data parsing. This would make generating different output formats easier and not
+have to mix into every function.
+
+To build this, you need to make with C++11:
+
+    $ make CPPFLAGS="--std=c++11"
+
+Here is some sample output:
+
+    $ ./smartctl -f json -a -x /dev/disk0
+
+```json
+{
+    "buildInfo": "Copyright (C) 2002-17, Bruce Allen, Christian Franke, www.smartmontools.org",
+    "drive": {
+        "ATAVersion": "ATA8-ACS T13/1699-D revision 4c",
+        "SATAVersion": "SATA 3.0, 6.0 Gb/s (current: 6.0 Gb/s)",
+        "WWNDeviceId": "X XXXXXX XXXXXXXXX",
+        "firmwareVersion": "XXXXXXXX",
+        "localTime": "Sun Jul 30 23:28:28 2017 MDT",
+        "model": "APPLE SSD XXXXXX",
+        "modelFamily": "Apple SD/SM/TS...E/F SSDs",
+        "rotationRate": "Solid State Device",
+        "sectorSizeLogical": 512,
+        "sectorSizePhysical": 4096,
+        "serialNumber": "XXXXXXXXXXXXXX",
+        "smartctlDatabase": true,
+        "userCapacity": 251000193024
+    },
+    "logDirectories": {
+        "00": {
+            "access": "    SL",
+            "description": "Log Directory",
+            "r/w": "R/O",
+            "size": 1
+        },
+        "01": {
+            "access": "    SL",
+            "description": "Summary SMART error log",
+            "r/w": "R/O",
+            "size": 1
+        },
+        "02": {
+            "access": "    SL",
+            "description": "Comprehensive SMART error log",
+            "r/w": "R/O",
+            "size": 2
+        },
+        "03": {
+            "access": "    SL",
+            "description": "Ext. Comprehensive SMART error log",
+            "r/w": "R/O",
+            "size": 2
+        },
+        "06": {
+            "access": "    SL",
+            "description": "SMART self-test log",
+            "r/w": "R/O",
+            "size": 1
+        },
+        "07": {
+            "access": "    SL",
+            "description": "Extended self-test log",
+            "r/w": "R/O",
+            "size": 2
+        },
+        "09": {
+            "access": "    SL",
+            "description": "Selective self-test log",
+            "r/w": "R/W",
+            "size": 1
+        },
+        "10": {
+            "access": "    SL",
+            "description": "NCQ Command Error log",
+            "r/w": "R/O",
+            "size": 1
+        },
+        "11": {
+            "access": "    SL",
+            "description": "SATA Phy Event Counters log",
+            "r/w": "R/O",
+            "size": 1
+        },
+        "9f-9f": {
+            "access": "    SL",
+            "description": "Host vendor specific log",
+            "r/w": "R/W",
+            "size": 16
+        },
+        "version": 1
+    },
+    "packageVersion": "6.6",
+    "smartAttributes": {
+        "1": {
+            "attributeName": "Raw_Read_Error_Rate",
+            "flag": 26,
+            "rawValue": "0",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 200,
+            "whenFailed": 3,
+            "worst": 200
+        },
+        "12": {
+            "attributeName": "Power_Cycle_Count",
+            "flag": 50,
+            "rawValue": "15043",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 85,
+            "whenFailed": 3,
+            "worst": 85
+        },
+        "169": {
+            "attributeName": "Unknown_Attribute",
+            "flag": 19,
+            "rawValue": "1727105341696",
+            "threshold": 10,
+            "type": 1,
+            "updated": 2,
+            "value": 253,
+            "whenFailed": 3,
+            "worst": 253
+        },
+        "173": {
+            "attributeName": "Wear_Leveling_Count",
+            "flag": 50,
+            "rawValue": "747352228129",
+            "threshold": 100,
+            "type": 0,
+            "updated": 2,
+            "value": 186,
+            "whenFailed": 3,
+            "worst": 186
+        },
+        "192": {
+            "attributeName": "Power-Off_Retract_Count",
+            "flag": 18,
+            "rawValue": "15020",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 97,
+            "whenFailed": 3,
+            "worst": 97
+        },
+        "194": {
+            "attributeName": "Temperature_Celsius",
+            "flag": 34,
+            "rawValue": "39 (Min/Max 7/78)",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 61,
+            "whenFailed": 3,
+            "worst": 22
+        },
+        "197": {
+            "attributeName": "Current_Pending_Sector",
+            "flag": 34,
+            "rawValue": "0",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 100,
+            "whenFailed": 3,
+            "worst": 100
+        },
+        "199": {
+            "attributeName": "UDMA_CRC_Error_Count",
+            "flag": 26,
+            "rawValue": "0",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 200,
+            "whenFailed": 3,
+            "worst": 200
+        },
+        "5": {
+            "attributeName": "Reallocated_Sector_Ct",
+            "flag": 51,
+            "rawValue": "0",
+            "threshold": 0,
+            "type": 1,
+            "updated": 2,
+            "value": 100,
+            "whenFailed": 3,
+            "worst": 100
+        },
+        "9": {
+            "attributeName": "Power_On_Hours",
+            "flag": 50,
+            "rawValue": "3204",
+            "threshold": 0,
+            "type": 0,
+            "updated": 2,
+            "value": 99,
+            "whenFailed": 3,
+            "worst": 99
+        },
+        "dataStructureRevisionNumber": 1
+    },
+    "smartCapabilities": {
+        "autosavetimer": true,
+        "capabilities": 3,
+        "saveBeforePowerSave": true
+    },
+    "smartErrorLogging": true,
+    "smartExtendedSelfTestRecommendedPollingTime": 16,
+    "smartOfflineCollectCap": {
+        "automaticTimer": 2,
+        "capabilities": 91,
+        "conveyanceSelfTest": 0,
+        "executeOfflineImmediate": 1,
+        "offlineAbort": 0,
+        "selectiveSelfTest": 64,
+        "selfTest": 16,
+        "surfaceScan": 8
+    },
+    "smartOfflineStatus": {
+        "autoOfflineDataCollection": false,
+        "offlineDataCollectionActivity": "was completed without error",
+        "offlineDataCollectionStatus": 2
+    },
+    "smartSelfExecStatus": {
+        "previousExitStatus": 0
+    },
+    "smartShortSelfTestRecommendedPollingTime": 2,
+    "smartTotalTimeCompleteOffline": 960
+}
+```
+
+Functions that still need to be modified for JSON output:
+
+* print_device_statistics_page
+* print_device_statistics
+* PrintSataPhyEventCounters
+* PrintSmartErrorlog
+* PrintSmartExtErrorLog
+* PrintSmartExtSelfTestLog
+* ataPrintSelectiveSelfTestLog
+* ataPrintSCTStatus
+* ataPrintSCTTempHist
+* ataPrintSCTErrorRecoveryControl
+* print_aam_level
+* print_apm_level
+* print_ata_security_status
+* print_standby_timer
+* ataPrintMain
+
+
 == HOME ==
 The home for smartmontools is located at:
-    
+
     http://www.smartmontools.org/
 
 Please see this web site for updates, documentation, and for submitting
